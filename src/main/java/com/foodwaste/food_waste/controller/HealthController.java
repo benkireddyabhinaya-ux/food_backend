@@ -15,6 +15,21 @@ import java.util.Map;
 @Tag(name = "Health & System", description = "Endpoints for service health monitoring and uptime checks")
 public class HealthController {
 
+    @GetMapping({"/", "/api"})
+    @Operation(summary = "Root entry point providing API status and quick links")
+    public ResponseEntity<?> root() {
+        return ResponseEntity.ok(Map.of(
+                "service", "Food Waste Reduction System API",
+                "status", "RUNNING",
+                "version", "1.0.0",
+                "health", "/api/health",
+                "swaggerDocumentation", "/swagger-ui.html",
+                "availableDonations", "/api/donations/available",
+                "impactStats", "/api/stats/summary",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
     @GetMapping({"/health", "/api/health"})
     @Operation(summary = "Health check probe for Render deployment")
     public ResponseEntity<?> health() {
