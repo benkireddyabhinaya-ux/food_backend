@@ -1,0 +1,27 @@
+services:
+  # Spring Boot Backend Web Service
+  - type: web
+    name: food-waste-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: DATABASE_URL
+        fromDatabase:
+          name: food-waste-postgres
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*"
+
+databases:
+  # Managed PostgreSQL Database
+  - name: food-waste-postgres
+    databaseName: food_waste_db
+    user: food_waste_user
+    plan: free
+    region: oregon

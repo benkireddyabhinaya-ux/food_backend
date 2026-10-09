@@ -1,0 +1,12 @@
+target/
+bin/
+data/
+.mvn/
+*.class
+*.log
+*.mv.db
+*.trace.db
+.vscode/
+.idea/
+*.iml
+.DS_Store
