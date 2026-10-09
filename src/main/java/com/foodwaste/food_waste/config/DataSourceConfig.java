@@ -21,9 +21,6 @@ public class DataSourceConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
 
-    @Value("${DATABASE_URL:#{null}}")
-    private String propertyDatabaseUrl;
-
     @Value("${spring.datasource.url:#{null}}")
     private String defaultUrl;
 
@@ -39,25 +36,23 @@ public class DataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        // 1. Check environment variable DATABASE_URL (Render standard)
+        // 1. Check raw environment variable DATABASE_URL (Render standard)
         String envDbUrl = System.getenv("DATABASE_URL");
         if (envDbUrl == null || envDbUrl.isBlank()) {
             envDbUrl = System.getenv("SPRING_DATASOURCE_URL");
         }
-        if (envDbUrl == null || envDbUrl.isBlank()) {
-            envDbUrl = propertyDatabaseUrl;
-        }
 
         if (envDbUrl != null && !envDbUrl.isBlank()) {
-            log.info("Detected PostgreSQL database connection URL from configuration");
+            log.info("Detected PostgreSQL database connection URL from environment variable");
             return createDataSourceFromUrl(envDbUrl);
         }
 
-        // 2. If configured for local postgres, check if localhost:5432 is running
-        if (defaultUrl != null && defaultUrl.contains("localhost:5432")) {
-            boolean postgresRunning = isPortOpen("localhost", 5432, 600);
-            if (!postgresRunning) {
-                log.warn("PostgreSQL server at localhost:5432 is not running. Switching automatically to embedded H2 (PostgreSQL-compatible) database for seamless local development.");
+        // 2. If configured host is not reachable from current environment (e.g. running locally without Postgres), fall back to H2
+        if (defaultUrl != null && (defaultUrl.contains("localhost:5432") || defaultUrl.contains("dpg-"))) {
+            String host = defaultUrl.contains("localhost") ? "localhost" : "dpg-db4gohu0tbcc73eb5k3g-a";
+            boolean isRunning = isPortOpen(host, 5432, 1000);
+            if (!isRunning) {
+                log.warn("PostgreSQL server at {} is not accessible from this environment. Switching automatically to embedded H2 (PostgreSQL-compatible) database.", host);
                 return createH2FallbackDataSource();
             }
         }
@@ -67,7 +62,7 @@ public class DataSourceConfig {
             try {
                 HikariConfig config = new HikariConfig();
                 config.setJdbcUrl(defaultUrl);
-                config.setUsername(defaultUsername != null ? defaultUsername : "postgres");
+                config.setUsername(defaultUsername != null ? defaultUsername : "food_m83h_user");
                 config.setPassword(defaultPassword != null ? defaultPassword : "");
                 if (defaultDriver != null && !defaultDriver.isBlank()) {
                     config.setDriverClassName(defaultDriver);
