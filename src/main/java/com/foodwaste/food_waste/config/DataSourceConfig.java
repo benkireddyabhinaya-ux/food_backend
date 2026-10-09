@@ -21,6 +21,9 @@ public class DataSourceConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
 
+    @Value("${DATABASE_URL:#{null}}")
+    private String propertyDatabaseUrl;
+
     @Value("${spring.datasource.url:#{null}}")
     private String defaultUrl;
 
@@ -36,14 +39,17 @@ public class DataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
+        // 1. Check environment variable DATABASE_URL (Render standard)
         String envDbUrl = System.getenv("DATABASE_URL");
         if (envDbUrl == null || envDbUrl.isBlank()) {
             envDbUrl = System.getenv("SPRING_DATASOURCE_URL");
         }
+        if (envDbUrl == null || envDbUrl.isBlank()) {
+            envDbUrl = propertyDatabaseUrl;
+        }
 
-        // 1. If cloud / Render / Supabase DATABASE_URL is provided, use PostgreSQL
         if (envDbUrl != null && !envDbUrl.isBlank()) {
-            log.info("Detected database connection URL from environment variable");
+            log.info("Detected PostgreSQL database connection URL from configuration");
             return createDataSourceFromUrl(envDbUrl);
         }
 
@@ -56,7 +62,7 @@ public class DataSourceConfig {
             }
         }
 
-        // 3. If explicit external URL configured, use it
+        // 3. If explicit database URL configured, use it
         if (defaultUrl != null && !defaultUrl.isBlank()) {
             try {
                 HikariConfig config = new HikariConfig();
@@ -68,7 +74,7 @@ public class DataSourceConfig {
                 }
                 config.setMaximumPoolSize(10);
                 config.setMinimumIdle(2);
-                config.setConnectionTimeout(5000);
+                config.setConnectionTimeout(10000);
                 return new HikariDataSource(config);
             } catch (Exception e) {
                 log.warn("Failed connecting to configured database, falling back to embedded H2: {}", e.getMessage());
@@ -126,16 +132,20 @@ public class DataSourceConfig {
                 String host = uri.getHost();
                 int port = uri.getPort() == -1 ? 5432 : uri.getPort();
                 String path = uri.getPath();
-                String dbName = (path != null && path.length() > 1) ? path.substring(1) : "food_waste_db";
+                String dbName = (path != null && path.length() > 1) ? path.substring(1) : "food_m83h";
 
                 String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
                 if (uri.getQuery() != null && !uri.getQuery().isBlank()) {
                     jdbcUrl += "?" + uri.getQuery();
-                } else {
+                } else if (host != null && host.contains(".")) {
+                    // External domains use require SSL
                     jdbcUrl += "?sslmode=require";
+                } else {
+                    // Internal Render hostnames (like dpg-db4gohu0tbcc73eb5k3g-a) use prefer SSL
+                    jdbcUrl += "?sslmode=prefer";
                 }
 
-                log.info("Configured PostgreSQL JDBC connection to host: {}, db: {}", host, dbName);
+                log.info("Configured PostgreSQL connection to host: {}, db: {}, user: {}", host, dbName, username);
                 config.setJdbcUrl(jdbcUrl);
                 config.setUsername(username);
                 config.setPassword(password);
