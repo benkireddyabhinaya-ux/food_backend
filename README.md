@@ -18,7 +18,7 @@ Production-ready REST API built with **Java 21 / Spring Boot 3.5**, **PostgreSQL
    - **PostgreSQL Database**: `food-waste-postgres`
    - **Dockerized Web Service**: `food-waste-backend`
 5. Click **Apply**.
-6. When deployment finishes, copy your live backend URL (e.g. `https://food-waste-backend.onrender.com`).
+6. When deployment finishes, copy your live backend URL: `https://food-backend-hix6.onrender.com`.
 
 ### Method 2: Manual Web Service + PostgreSQL Setup
 1. Create a **PostgreSQL Database** on Render:
